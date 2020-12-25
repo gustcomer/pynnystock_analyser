@@ -2,7 +2,7 @@ import pandas as pd
 import datetime
 from Utilities import divideDays
 
-
+# modificação
 class IntraDay():
 	'''
 	Classe responsável por manter os dados dentro de um dia para algum ativo qualquer
