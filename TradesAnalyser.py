@@ -141,8 +141,6 @@ class TradesAnalyser():
 		                       ignore_index=True)
 		df = df.sort_values(by='date',ignore_index=True)
 		df['cum_profit'] = (1+self.allocation*df['profit']).cumprod()
-		#df.index = list( range(0,len(df)) ) # depois da versão 1.0 de pandas podemos usar 
-											# sort_values(by='date',ignore_index=True)
 		df['equity_real'] = pd.Series(0, index=df.index, dtype='float64')
 		df['profit_real'] = pd.Series(0, index=df.index, dtype='float64')
 
@@ -161,15 +159,12 @@ class TradesAnalyser():
 	def runSimulation(self):
 		trades = []
 		for ad in self.fad:
-		    # a = at.Ativo(ad['name'],self.fm[ad['name']])
-		    # intra = a.fromDay(ad['date'])
 		    intra = at.Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'])
 		    trades.append({'name': ad['name'],
 		                   'date': ad['date'],
 		                   'trade': intra.checkForTrade(self.short_after, self.exit_target, self.exit_stop)})
 		self.trades = trades
 		# vamos contar o número de non-None trades.
-		# https://stackoverflow.com/questions/29422691/how-to-count-the-number-of-occurrences-of-none-in-a-list
 		self.n_trades = sum(x['trade'] is not None for x in self.trades)
 
 	def runSimulationGroup(self,

@@ -14,7 +14,6 @@ def divideDays(bl):
 	for tick in bl:
 		if tick['time'].date() == actual_day['time'].date(): # se ainda estivermos no mesmo dia
 			temp_day.append(tick)
-			# aqui não precisamos dar .copy no tick pois ele não é temporário.
 
 		else: # chegou um novo dia
 			dbl.append(temp_day.copy())

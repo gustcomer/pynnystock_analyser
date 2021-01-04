@@ -2,7 +2,6 @@ import pandas as pd
 import datetime
 from Utilities import divideDays
 
-# modificação
 class IntraDay():
 	'''
 	Classe responsável por manter os dados dentro de um dia para algum ativo qualquer
@@ -193,7 +192,6 @@ class Ativo():
 	@staticmethod # usamos @staticmethod e não @classmethod pois não precisaremos instanciar a classe com cls
 					# na verdade nem usamos name
 	def initIntradayFromDate(name, path, d): # d é a data em formato datetime.date
-		# https://stackoverflow.com/questions/15718068/search-file-and-find-exact-match-and-print-line
 		data = []
 		with open(path, 'r') as file:
 			lines = [line for line in file if line.startswith(d.strftime("%Y-%m-%d"))]
@@ -220,9 +218,7 @@ class Ativo():
 		for d in self.dataDays:
 			self.intraDays.append( IntraDay(d) )
 
-	# aqui vamos inicializar algumas stats que não são autocontidas em um dia, como o gap, que 
-	# precisa ser calculado sempre em relação ao dia anterior
-	# cuidar pois nessa função estamos quebrando encapsulamento por questão de comodidade
+	# vamos inicializar algumas stats que não são autocontidas em um dia
 	def _initOuterDayStats(self):
 
 		gap = 0
@@ -238,8 +234,6 @@ class Ativo():
 				dayBefore = day
 
 	# esse método filtra o dia de interesse e retorna um objeto da classe Intraday (aka ativo-dia)
-	# https://stackoverflow.com/questions/34609935/passing-a-function-with-two-arguments-to-filter-in-python/34610018
-	# https://stackoverflow.com/questions/7125467/find-object-in-list-that-has-attribute-equal-to-some-value-that-meets-any-condi
 	# daria pra fazer com filter mas no final das contas next() é a melhor opção
 	def fromDay(self,d):
 		return next(intra for intra in self.intraDays if intra.dataDay[0]['time'].date() == d )

@@ -34,9 +34,6 @@ class FileManager():
 	def getNames(self):
 		return list(self.ticker.keys())
 
-#	def getNames(self,start,end):
-#		return list(self.ticker.keys())[start:end]
-
 	def show(self):
 		print(self.ticker)
 
@@ -46,8 +43,7 @@ class FileManager():
 		df = df[['Ticker', 'Shares Float']] # apenas colunas que interessam, transformaremos essas duas cols em dictionary
 		df = df.dropna()
 		df = df[ df['Shares Float']>=1 ]
-		df['Shares Float'] = df['Shares Float'].astype('int64') # em teoria essa expressão é errada pois joga coisas numa 
-																# slice que é copia
+		df['Shares Float'] = df['Shares Float'].astype('int64')
 		self.freeFloat = dict(zip(df['Ticker'],df['Shares Float']))
 
 	def getFreeFloatNames(self):
