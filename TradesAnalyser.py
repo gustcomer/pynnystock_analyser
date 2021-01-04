@@ -7,6 +7,9 @@ import pickle
 from Utilities import drawdown
 from matplotlib import pyplot as plt
 
+
+# Essa versão vai incluir position sizing em duas etapas. Provavelmente essa versão será descontinuada e só
+# existirá enquanto o software não possuir módulos flexíveis.
 class TradesAnalyser():
 	'''
 	Calcula os Trades e analisa eles
