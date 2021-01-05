@@ -5,7 +5,9 @@ import datetime
 import Ativo as at
 import pickle
 from Utilities import drawdown
+import Parameters
 from matplotlib import pyplot as plt
+
 
 
 # Essa versão vai incluir position sizing em duas etapas. Provavelmente essa versão será descontinuada e só
@@ -21,44 +23,12 @@ class TradesAnalyser():
 		self.trades = [] # trade results from last simulation
 		self.n_trades = 0 # number of non-None trades
 
-		self.prevol_threshold = 800000
-		self.open_dolar_threshold = 2
-		self.gap_threshold = 0.20
-		self.F_low_threshold = 0
-		self.F_high_threshold = 1
-
-		self.short_after = 0.1
-		self.exit_target = 0.3
-		self.exit_stop = 0.3
-
-		self.start_money = 10000
-		self.allocation = 0.1
-		self.locate_fee = 0.02
-		self.commission = 2
+		self.parameters = Parameters.ParametersSimple()
 
 		self.results = pd.DataFrame()
 
 		self.bs_base = pd.DataFrame() # caso base do bootstrap
 		self.bsl = [] # Boot Strap List: uma lista com varios dataframes. Cada df, uma combinação de trades.
-
-	def setFilterParameters(self,prevol_threshold=800000,open_dolar_threshold=2,gap_threshold=0.2,
-							F_low_threshold=0,F_high_threshold=1):
-		self.prevol_threshold = prevol_threshold
-		self.open_dolar_threshold = open_dolar_threshold
-		self.gap_threshold = gap_threshold
-		self.F_low_threshold = F_low_threshold
-		self.F_high_threshold = F_high_threshold
-
-	def setAlgoParameters(self,short_after = 0.1, exit_target = 0.3, exit_stop = 0.3):
-		self.short_after = short_after
-		self.exit_target = exit_target
-		self.exit_stop = exit_stop
-
-	def setSimParameters(self, start_money = 10000, allocation=0.1, locate_fee=0.02, commission=2):
-		self.start_money = start_money
-		self.allocation = allocation
-		self.locate_fee = locate_fee
-		self.commission = commission
 
 	def runFiltering(self):
 		def make_filter_prevol(threshold):
@@ -73,10 +43,10 @@ class TradesAnalyser():
 		def make_filter_F(low_threshold, high_threshold):
 		    return lambda ad: low_threshold <= ad['stats']['volPre']/ad['freefloat'] <= high_threshold
 
-		prevol_greater_than = make_filter_prevol(self.prevol_threshold)
-		open_greater_than_dolar = make_filter_open_dolar(self.open_dolar_threshold)
-		gap_greater_than = make_filter_gap(self.gap_threshold)
-		F_between = make_filter_F(self.F_low_threshold,self.F_high_threshold)
+		prevol_greater_than = make_filter_prevol(self.parameters.prevol_threshold)
+		open_greater_than_dolar = make_filter_open_dolar(self.parameters.open_dolar_threshold)
+		gap_greater_than = make_filter_gap(self.parameters.gap_threshold)
+		F_between = make_filter_F(self.parameters.F_low_threshold,self.parameters.F_high_threshold)
 
 		filtered_ativo_dias =  filter(prevol_greater_than, self.adl)
 		filtered_ativo_dias =  filter(open_greater_than_dolar, filtered_ativo_dias)
@@ -143,18 +113,18 @@ class TradesAnalyser():
 		                         'profit':t['trade']['profit']},
 		                       ignore_index=True)
 		df = df.sort_values(by='date',ignore_index=True)
-		df['cum_profit'] = (1+self.allocation*df['profit']).cumprod()
+		df['cum_profit'] = (1+self.parameters.allocation*df['profit']).cumprod()
 		df['equity_real'] = pd.Series(0, index=df.index, dtype='float64')
 		df['profit_real'] = pd.Series(0, index=df.index, dtype='float64')
 
-		value = self.start_money
+		value = self.parameters.start_money
 		for index, row in df.iterrows():
 			anterior = value # vamos armazenar anterior pra calcular 'profit_real'
-			value = value + (value*self.allocation)*row['profit'] - value*self.allocation*self.locate_fee - self.commission
+			value = value + (value*self.parameters.allocation)*row['profit'] - value*self.parameters.allocation*self.parameters.locate_fee - self.parameters.commission
 			df.at[index,'equity_real'] = value
 			df.at[index,'profit_real'] = value/anterior-1 # curiosidade: a commission vai sendo diluida à medida dos trades
 
-		df['cum_profit_real'] = df['equity_real']/self.start_money
+		df['cum_profit_real'] = df['equity_real']/self.parameters.start_money
 
 		df.date = pd.to_datetime(df.date)
 		return df
@@ -165,7 +135,9 @@ class TradesAnalyser():
 		    intra = at.Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'])
 		    trades.append({'name': ad['name'],
 		                   'date': ad['date'],
-		                   'trade': intra.checkForTrade(self.short_after, self.exit_target, self.exit_stop)})
+		                   'trade': intra.checkForTrade(self.parameters.short_after,
+		                   								self.parameters.exit_target,
+		                   								self.parameters.exit_stop)})
 		self.trades = trades
 		# vamos contar o número de non-None trades.
 		self.n_trades = sum(x['trade'] is not None for x in self.trades)
@@ -222,17 +194,17 @@ class TradesAnalyser():
 		print(f"Simulando {len(parslist)} combinações de parâmetros.")
 
 		for p in parslist:
-			self.setFilterParameters(prevol_threshold=p['prevol_threshold'],
+			self.parameters.setFilterParameters(prevol_threshold=p['prevol_threshold'],
 									open_dolar_threshold=p['open_dolar_threshold'],
 									gap_threshold=p['gap_threshold'],
 									F_low_threshold=p['F_low_threshold'],
 									F_high_threshold=p['F_high_threshold'])
 			self.runFiltering()
 				
-			self.setAlgoParameters(short_after = p['short_after'],
+			self.parameters.setAlgoParameters(short_after = p['short_after'],
 									exit_target = p['exit_target'],
 									exit_stop = p['exit_stop'])
-			self.setSimParameters(start_money = p['start_money'],
+			self.parameters.setSimParameters(start_money = p['start_money'],
 								allocation = p['allocation'],
 								locate_fee=p['locate_fee'],
 								commission=p['commission'])
@@ -256,28 +228,28 @@ class TradesAnalyser():
 
 	def printSimResults(self):
 
-		print('prevol_threshold', self.prevol_threshold)
-		print('open_dolar_threshold', self.open_dolar_threshold)
-		print('gap_threshold', self.gap_threshold)
-		print('F_low_threshold', self.F_low_threshold)
-		print('F_high_threshold', self.F_high_threshold)
+		print('prevol_threshold', self.parameters.prevol_threshold)
+		print('open_dolar_threshold', self.parameters.open_dolar_threshold)
+		print('gap_threshold', self.parameters.gap_threshold)
+		print('F_low_threshold', self.parameters.F_low_threshold)
+		print('F_high_threshold', self.parameters.F_high_threshold)
 
 		print('')
 
-		print('short_after', self.short_after)
-		print('exit_target', self.exit_target)
-		print('exit_stop', self.exit_stop)
+		print('short_after', self.parameters.short_after)
+		print('exit_target', self.parameters.exit_target)
+		print('exit_stop', self.parameters.exit_stop)
 
 		print('')
 
-		print('start_money', self.start_money)
-		print('allocation', self.allocation)
-		print('locate_fee', self.locate_fee)
-		print('commission', self.commission)
+		print('start_money', self.parameters.start_money)
+		print('allocation', self.parameters.allocation)
+		print('locate_fee', self.parameters.locate_fee)
+		print('commission', self.parameters.commission)
 
 		print('')
 
-		start = self.start_money
+		start = self.parameters.start_money
 		print('Start Money:', '${:,.2f}'.format(start) )
 
 		end_money = self.getEndMoney()
@@ -290,20 +262,20 @@ class TradesAnalyser():
 		self.runBootstrap(n_iter=50, replace=False)
 		bsr = self.getBootstrapResults()
 
-		df = pd.DataFrame({ 'prevol_threshold':self.prevol_threshold,
-		                    'open_dolar_threshold':self.open_dolar_threshold,
-		                    'gap_threshold':self.gap_threshold,
-		                    'F_low_threshold':self.F_low_threshold,
-		                    'F_high_threshold':self.F_high_threshold,
-		                    'short_after':self.short_after,
-		                    'exit_target':self.exit_target,
-		                    'exit_stop':self.exit_stop,
-		                    'start_money':self.start_money,
-		                    'allocation':self.allocation,
-		                    'locate_fee':self.locate_fee,
-		                    'commission':self.commission,
+		df = pd.DataFrame({ 'prevol_threshold':self.parameters.prevol_threshold,
+		                    'open_dolar_threshold':self.parameters.open_dolar_threshold,
+		                    'gap_threshold':self.parameters.gap_threshold,
+		                    'F_low_threshold':self.parameters.F_low_threshold,
+		                    'F_high_threshold':self.parameters.F_high_threshold,
+		                    'short_after':self.parameters.short_after,
+		                    'exit_target':self.parameters.exit_target,
+		                    'exit_stop':self.parameters.exit_stop,
+		                    'start_money':self.parameters.start_money,
+		                    'allocation':self.parameters.allocation,
+		                    'locate_fee':self.parameters.locate_fee,
+		                    'commission':self.parameters.commission,
 		                    'end_money':self.getEndMoney(),
-		                    'profit':(self.getEndMoney()-self.start_money)/self.start_money,
+		                    'profit':(self.getEndMoney()-self.parameters.start_money)/self.parameters.start_money,
 		                    'max_drawdown':self.getMaxDrawdown(),
 		                    'meanmax_drawdown': bsr['max_drawdown'].mean(),
 		                    'maxmax_drawdown':bsr['max_drawdown'].max(),
@@ -393,15 +365,15 @@ class TradesAnalyser():
 
 	def __repr__(self):
 		s='FILTERING PARAMETERS\n'
-		s = s + f"prevol_threshold: {self.prevol_threshold}\n"
-		s = s + f"open_dolar_threshold: {self.open_dolar_threshold}\n"
-		s = s + f"gap_threshold: {self.gap_threshold}\n"
-		s = s + f"F_low_threshold: {self.F_low_threshold}\n"
-		s = s + f"F_high_threshold: {self.F_high_threshold}\n"
+		s = s + f"prevol_threshold: {self.parameters.prevol_threshold}\n"
+		s = s + f"open_dolar_threshold: {self.parameters.open_dolar_threshold}\n"
+		s = s + f"gap_threshold: {self.parameters.gap_threshold}\n"
+		s = s + f"F_low_threshold: {self.parameters.F_low_threshold}\n"
+		s = s + f"F_high_threshold: {self.parameters.F_high_threshold}\n"
 		s = s + f"\n"
 		s = s + f'TRADING PARAMETERS\n'
-		s = s + f"short_after: {self.short_after}\n"
-		s = s + f"exit_target: {self.exit_target}\n"
-		s = s + f"exit_stop: {self.exit_stop}\n"
+		s = s + f"short_after: {self.parameters.short_after}\n"
+		s = s + f"exit_target: {self.parameters.exit_target}\n"
+		s = s + f"exit_stop: {self.parameters.exit_stop}\n"
 
 		return s

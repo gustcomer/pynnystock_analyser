@@ -16,6 +16,8 @@ class IntraDay():
 		self._core = []
 		self._pos = []
 
+		self.stats = {} # empty curly cria empty dict e não empty set
+
 		for dt in dataDay: # dt seria pra cada datetime (time com date), por isso extraímos dt.time()
 			t1 = datetime.time(9,30)
 			t2 = datetime.time(16,0)
@@ -37,7 +39,6 @@ class IntraDay():
 
 
 	def _initializeIntradayStats(self):
-		self.stats = {} # empty curly cria empty dict e não empty set
 
 		# calcula volume pre market
 		volPre = 0
