@@ -1,16 +1,10 @@
-
-class ParametersSimple:
-
+class ParametersBase:
 	def __init__(self):
 		self.prevol_threshold = 800000
 		self.open_dolar_threshold = 2
 		self.gap_threshold = 0.20
 		self.F_low_threshold = 0
 		self.F_high_threshold = 1
-
-		self.short_after = 0.1
-		self.exit_target = 0.3
-		self.exit_stop = 0.3
 
 		self.start_money = 10000
 		self.allocation = 0.1
@@ -25,16 +19,28 @@ class ParametersSimple:
 		self.F_low_threshold = F_low_threshold
 		self.F_high_threshold = F_high_threshold
 
-	def setAlgoParameters(self,short_after = 0.1, exit_target = 0.3, exit_stop = 0.3):
-		self.short_after = short_after
-		self.exit_target = exit_target
-		self.exit_stop = exit_stop
+	def setAlgoParameters():
+		pass
 
 	def setSimParameters(self, start_money = 10000, allocation=0.1, locate_fee=0.02, commission=2):
 		self.start_money = start_money
 		self.allocation = allocation
 		self.locate_fee = locate_fee
 		self.commission = commission
+
+class ParametersSimple(ParametersBase):
+
+	def __init__(self):
+		super().__init__()
+
+		self.short_after = 0.1
+		self.exit_target = 0.3
+		self.exit_stop = 0.3
+
+	def setAlgoParameters(self,short_after = 0.1, exit_target = 0.3, exit_stop = 0.3):
+		self.short_after = short_after
+		self.exit_target = exit_target
+		self.exit_stop = exit_stop
 
 	def __repr__(self):
 		s='PARÂMETROS PARA ALGORITMO DO TIPO SIMPLE\n'

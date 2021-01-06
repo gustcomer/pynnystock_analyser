@@ -362,18 +362,3 @@ class TradesAnalyser():
 		print('maximum maximum drawdown', bsr['max_drawdown'].max() )
 		print('minimum maximum drawdown', bsr['max_drawdown'].min() )
 		print('mean maximum drawdown', bsr['max_drawdown'].mean() )
-
-	def __repr__(self):
-		s='FILTERING PARAMETERS\n'
-		s = s + f"prevol_threshold: {self.parameters.prevol_threshold}\n"
-		s = s + f"open_dolar_threshold: {self.parameters.open_dolar_threshold}\n"
-		s = s + f"gap_threshold: {self.parameters.gap_threshold}\n"
-		s = s + f"F_low_threshold: {self.parameters.F_low_threshold}\n"
-		s = s + f"F_high_threshold: {self.parameters.F_high_threshold}\n"
-		s = s + f"\n"
-		s = s + f'TRADING PARAMETERS\n'
-		s = s + f"short_after: {self.parameters.short_after}\n"
-		s = s + f"exit_target: {self.parameters.exit_target}\n"
-		s = s + f"exit_stop: {self.parameters.exit_stop}\n"
-
-		return s
