@@ -25,7 +25,7 @@ def divideDays(bl):
 
 	return dbl
 
-def drawdown(s):
+def drawdown(s): # retorna o máximo drawdown de uma série
 	dd = pd.Series(dtype='float64') # drawdown (dd) will be used to calculate maximum drawdown (mdd)
 	# especificamos explicitamente o dtype para evitar uma warning
 
@@ -34,4 +34,4 @@ def drawdown(s):
 		# como não queremos dar append de 1 em s, usamos max(X,1) onde
 		# X = s[:i+1].max()
 		dd = dd.append( pd.Series( _dd ), ignore_index=True ) 
-	return abs( dd.min() )
+	return abs( dd.min() ) # na verdade retornamos o maximo drawdown de uma série, 
