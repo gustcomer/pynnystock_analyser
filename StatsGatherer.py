@@ -2,14 +2,21 @@ import pandas as pd
 import datetime
 from Utilities import drawdown
 import pickle
+from matplotlib import pyplot as plt
+import numpy as np
 
 class StatsGatherer:
 
 	def __init__(self, pars):
 		self.filtereddf = pd.DataFrame()
+		self.n_filtered = 0
 		self.tradesdf = pd.DataFrame()
+		self.n_trades = 0
+
 		self.parameters = pars
+
 		self.endMoney = 0
+		
 		self.maxdrawdown = 0
 		self.meanmax_drawdown = 0
 		self.maxmax_drawdown = 0
@@ -54,6 +61,7 @@ class StatsGatherer:
 		                          ignore_index=True)
 		df.date = pd.to_datetime(df.date)
 		self.filtereddf = df
+		self.n_filtered = len(self.filtereddf)
 
 
 	def setTradesDF(self, trades):
@@ -167,6 +175,64 @@ class StatsGatherer:
 			loaded = pickle.load(filehandle)
 			self.groupResults = self.groupResults.append(loaded,ignore_index=True)
 
+
 	def openGroupResults(self,filename):
 		with open(filename, 'rb') as filehandle: # r de read e b de binary
 			self.groupResults = pickle.load(filehandle)
+
+
+	def printSimResults(self):
+
+		print('prevol_threshold', self.parameters.prevol_threshold)
+		print('open_dolar_threshold', self.parameters.open_dolar_threshold)
+		print('gap_threshold', self.parameters.gap_threshold)
+		print('F_low_threshold', self.parameters.F_low_threshold)
+		print('F_high_threshold', self.parameters.F_high_threshold)
+
+		print('')
+
+		print('short_after', self.parameters.short_after)
+		print('exit_target', self.parameters.exit_target)
+		print('exit_stop', self.parameters.exit_stop)
+
+		print('')
+
+		print('start_money', self.parameters.start_money)
+		print('allocation', self.parameters.allocation)
+		print('locate_fee', self.parameters.locate_fee)
+		print('commission', self.parameters.commission)
+
+		print('')
+
+		print('Start Money:', '${:,.2f}'.format(self.parameters.start_money) )
+
+		print('End Money:', '${:,.2f}'.format(self.endMoney) )
+		print('Number of Trades:', self.n_trades)
+		print('Number of filtered ativo-dias:', self.n_filtered )
+		print('Max Drawdown:', self.maxdrawdown )
+
+
+	def printBootstrapResults(self):
+
+		print('Max Drawdown:', self.maxdrawdown )
+		print('Mean of max Drawdown:', self.meanmax_drawdown )
+		print('Max of max Drawdown:', self.maxmax_drawdown )
+		print('Min of max Drawdown:', self.minmax_drawdown )
+
+
+	def plotHistMinsToTrade(self, bins = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]):
+
+		plt.hist( np.clip( self.tradesdf['mins_to_trade'], bins[0], bins[-1] ), bins=bins, edgecolor='black' )
+
+		plt.title('Minutes to Trade')
+		plt.xlabel('Minutes')
+		plt.ylabel('Total Ativos-Dias')
+
+		plt.show()
+
+
+	def plotEquityCurve(self, logy=False):
+
+		x = self.tradesdf['equity_real']
+		x.index = self.tradesdf['date']
+		x.plot(logy=logy)

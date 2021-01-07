@@ -8,8 +8,8 @@ from Utilities import drawdown
 class Simulator:
 
 
-	def __init__(self, adl, pars, sg):
-		self.fm = FileManager.FileManager()
+	def __init__(self, fm, adl, pars, sg):
+		self.fm = fm
 		self.adl = adl # ADL: Ativos-Dias List
 		self.fad = [] # FAD: Filtered Ativos-Dias
 		self.trades = [] # trade results from last simulation
@@ -73,7 +73,4 @@ class Simulator:
 		    self.trades = pickle.load(filehandle)
 		    self.n_trades = sum(x['trade'] is not None for x in self.trades)
 		    self.sg.setTradesDF(self.trades)
-
-
-
 
