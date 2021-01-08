@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime
 from Utilities import divideDays
+import StatsGatherer
 
 class IntraDay():
 	'''
@@ -35,115 +36,8 @@ class IntraDay():
 			if len(self._pos) > 0:
 				print('caso core vazio mas com pos')
 
-		self._initializeIntradayStats()
-
-
-	def _initializeIntradayStats(self):
-
-		# calcula volume pre market
-		volPre = 0
-		for b in self._pre:
-			volPre = volPre + b['volume']
-		self.stats['volPre'] = volPre
-
-		# calcula money volume de pre market
-		moneyVolPre = 0
-		for b in self._pre:
-			moneyVolPre += b['volume']*b['close']
-		self.stats['moneyVolPre'] = moneyVolPre
-
-		# calcula open value
-		self.stats['openValue'] = self._core[0]['open']
-
-		# calcula o valor mais alto do core, a hora na qual aconteceu e a position
-		highCoreValue = self._core[0]['high']
-		highCoreTime = self._core[0]['time'].time()
-		highCorePosition = 0
-
-		for b in self._core:
-			if highCoreValue < b['high']:
-				highCoreValue = b['high']
-				highCoreTime = b['time'].time()
-				highCorePosition = self._core.index(b)
-
-		self.stats['highCoreValue'] = highCoreValue
-		self.stats['highCoreTime'] = highCoreTime
-		self.stats['highCorePosition'] = highCorePosition
-
-		# calcula o low depois do high
-		lowAfterHighValue = self._core[highCorePosition]['high']
-		lowAfterHighTime = self._core[highCorePosition]['time'].time()
-		lowPositionAfterHigh = highCorePosition
-
-		for b in self._core[highCorePosition:]: # da high position pra frente
-			if lowAfterHighValue > b['low']:
-				lowAfterHighValue = b['low']
-				lowAfterHighTime = b['time'].time()
-				lowPositionAfterHigh = self._core.index(b)
-
-		self.stats['lowAfterHighValue'] = lowAfterHighValue
-		self.stats['lowAfterHighTime'] = lowAfterHighTime
-		self.stats['lowPositionAfterHigh'] = lowPositionAfterHigh
-
-		# calcula variação percentual do open até o spike
-
-		highCoreValue = self._core[highCorePosition]['high'] # escrevendo denovo só pra não se perder
-		openValue = self._core[0]['open']
-		openToSpikePercent = (highCoreValue - openValue)/openValue
-		self.stats['openToSpikePercent'] = openToSpikePercent
-
-		# calcula variação percentual do spike até o low
-		highCoreValue = self._core[highCorePosition]['high'] # escrevendo denovo só pra não se perder
-		lowAfterHighValue = self._core[lowPositionAfterHigh]['low']
-		spikeToLowPercent = (lowAfterHighValue - highCoreValue)/highCoreValue
-		self.stats['spikeToLowPercent'] = spikeToLowPercent
-
-		# calcula volume from start of core to spike
-		volumeToSpike = 0
-		for b in self._core[:(highCorePosition+1)]: # o mais 1 é pq em python o end é exclusive
-			volumeToSpike += b['volume']
-		self.stats['volumeToSpike'] = volumeToSpike
-
-		# calcula fator (volume até o spike)/(volume pre)
-		spikeToPreVolFactor = 0
-		if volPre == 0:
-			spikeToPreVolFactor = 0
-		else:
-			spikeToPreVolFactor = volumeToSpike/volPre
-		self.stats['spikeToPreVolFactor'] = spikeToPreVolFactor
-
-	def checkForTrade(self, short_after, exit_target, exit_stop):
-		trade = {} # se não tiver trade nesse dia o dictionary fica vazio
-		first = self._core[0]
-
-		for bar in self._core: 
-			# ENTRY POINT
-			if not bool(trade): # se nenhum trade tiver sido encontrado, procura por trades
-				if bar != self._core[-1]:
-					variation = (bar['high'] - first['open'])/first['open']
-					if variation >= short_after:
-						trade['entry'] = bar
-						trade['price'] = (1+short_after)*first['open']
-						trade['stop'] = (1+exit_stop)*trade['price']
-						trade['target'] = (1-exit_target)*trade['price'] # lembrar que pra short o target é menor
-			# EXIT POINTS
-			else: # se já tivermos encontrado algum trade, vamos procurar exits
-				if bar['high'] >= trade['stop']:
-					trade['exit'] = bar
-					trade['profit'] = -exit_stop
-					break # só pararemos a execução do loop apos encontrar uma entry e um stop
-				if bar['low'] <= trade['target']:
-					trade['exit'] = bar
-					trade['profit'] = exit_target
-					break
-				if bar == self._core[-1]: # se for a última barra, fecha o trade no close da ultima barra
-					trade['exit'] = bar
-					trade['profit'] = -(bar['close'] - trade['price'])/trade['price']
-
-		if not bool(trade): # testa se o dictionary com dados sobre um possível trade está vazio
-			return None
-
-		return trade # se o dictionary não estiver vazio, vai retornar os dados em trade
+		# chama um static method da classe StatsGatherer do module StatsGatherer
+		self.stats = StatsGatherer.StatsGatherer.calculateIntradayStats(self)
 
 	def __repr__(self):
 
@@ -188,7 +82,7 @@ class Ativo():
 		self.data = data
 		self._initDayData()
 		self._initIntradayData()
-		self._initOuterDayStats()
+		StatsGatherer.StatsGatherer.calculateOuterDayStats(self)
 
 	@staticmethod # usamos @staticmethod e não @classmethod pois não precisaremos instanciar a classe com cls
 					# na verdade nem usamos name
@@ -207,7 +101,7 @@ class Ativo():
 					'volume':int(tokens[5])}
 			data.append(bar)
 
-		return IntraDay(data)
+		return IntraDay(data) # notar que iniciamos IntraDay() sem as outer stats, paciência.. por enquanto..
 
 	# são os dados brutos divididos em dias, mas ainda não divididos em core, pre, pos e stats
 	def _initDayData(self):
@@ -218,21 +112,6 @@ class Ativo():
 		self.intraDays = []
 		for d in self.dataDays:
 			self.intraDays.append( IntraDay(d) )
-
-	# vamos inicializar algumas stats que não são autocontidas em um dia
-	def _initOuterDayStats(self):
-
-		gap = 0
-		dayBefore = self.intraDays[0]
-		for day in self.intraDays:
-			if dayBefore == day: # caso seja o primeiro dia, seta gap como zero, pois não faz sentido o calculo
-				day.stats['gap'] = 0
-				dayBefore = day
-			else:
-				firstOpen = day._core[0]['open']
-				lastClose = dayBefore._core[-1]['close']
-				day.stats['gap'] = (firstOpen - lastClose)/lastClose
-				dayBefore = day
 
 	# esse método filtra o dia de interesse e retorna um objeto da classe Intraday (aka ativo-dia)
 	# daria pra fazer com filter mas no final das contas next() é a melhor opção

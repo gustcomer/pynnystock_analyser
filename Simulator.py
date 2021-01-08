@@ -8,7 +8,7 @@ from Utilities import drawdown
 class Simulator:
 
 
-	def __init__(self, fm, adl, pars, sg):
+	def __init__(self, fm, adl, pars, sm, sg):
 		self.fm = fm
 		self.adl = adl # ADL: Ativos-Dias List
 		self.fad = [] # FAD: Filtered Ativos-Dias
@@ -16,6 +16,8 @@ class Simulator:
 		self.n_trades = 0 # number of non-None trades
 
 		self.parameters = pars
+
+		self.sm = sm
 
 		self.sg = sg
 
@@ -54,9 +56,8 @@ class Simulator:
 		    intra = Ativo.Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'])
 		    trades.append({'name': ad['name'],
 		                   'date': ad['date'],
-		                   'trade': intra.checkForTrade(self.parameters.short_after,
-		                   								self.parameters.exit_target,
-		                   								self.parameters.exit_stop)})
+		                   'trade': self.sm.checkForTrade(intra)
+		                   })
 		self.trades = trades
 		# vamos contar o número de non-None trades.
 		self.n_trades = sum(x['trade'] is not None for x in self.trades)

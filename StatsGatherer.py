@@ -236,3 +236,99 @@ class StatsGatherer:
 		x = self.tradesdf['equity_real']
 		x.index = self.tradesdf['date']
 		x.plot(logy=logy)
+
+
+	@staticmethod
+	def calculateIntradayStats(intraday):
+		stats = {}
+
+		# calcula volume pre market
+		volPre = 0
+		for b in intraday._pre:
+			volPre = volPre + b['volume']
+		stats['volPre'] = volPre
+
+		# calcula money volume de pre market
+		moneyVolPre = 0
+		for b in intraday._pre:
+			moneyVolPre += b['volume']*b['close']
+		stats['moneyVolPre'] = moneyVolPre
+
+		# calcula open value
+		stats['openValue'] = intraday._core[0]['open']
+
+		# calcula o valor mais alto do core, a hora na qual aconteceu e a position
+		highCoreValue = intraday._core[0]['high']
+		highCoreTime = intraday._core[0]['time'].time()
+		highCorePosition = 0
+
+		for b in intraday._core:
+			if highCoreValue < b['high']:
+				highCoreValue = b['high']
+				highCoreTime = b['time'].time()
+				highCorePosition = intraday._core.index(b)
+
+		stats['highCoreValue'] = highCoreValue
+		stats['highCoreTime'] = highCoreTime
+		stats['highCorePosition'] = highCorePosition
+
+		# calcula o low depois do high
+		lowAfterHighValue = intraday._core[highCorePosition]['high']
+		lowAfterHighTime = intraday._core[highCorePosition]['time'].time()
+		lowPositionAfterHigh = highCorePosition
+
+		for b in intraday._core[highCorePosition:]: # da high position pra frente
+			if lowAfterHighValue > b['low']:
+				lowAfterHighValue = b['low']
+				lowAfterHighTime = b['time'].time()
+				lowPositionAfterHigh = intraday._core.index(b)
+
+		stats['lowAfterHighValue'] = lowAfterHighValue
+		stats['lowAfterHighTime'] = lowAfterHighTime
+		stats['lowPositionAfterHigh'] = lowPositionAfterHigh
+
+		# calcula variação percentual do open até o spike
+
+		highCoreValue = intraday._core[highCorePosition]['high'] # escrevendo denovo só pra não se perder
+		openValue = intraday._core[0]['open']
+		openToSpikePercent = (highCoreValue - openValue)/openValue
+		stats['openToSpikePercent'] = openToSpikePercent
+
+		# calcula variação percentual do spike até o low
+		highCoreValue = intraday._core[highCorePosition]['high'] # escrevendo denovo só pra não se perder
+		lowAfterHighValue = intraday._core[lowPositionAfterHigh]['low']
+		spikeToLowPercent = (lowAfterHighValue - highCoreValue)/highCoreValue
+		stats['spikeToLowPercent'] = spikeToLowPercent
+
+		# calcula volume from start of core to spike
+		volumeToSpike = 0
+		for b in intraday._core[:(highCorePosition+1)]: # o mais 1 é pq em python o end é exclusive
+			volumeToSpike += b['volume']
+		stats['volumeToSpike'] = volumeToSpike
+
+		# calcula fator (volume até o spike)/(volume pre)
+		spikeToPreVolFactor = 0
+		if volPre == 0:
+			spikeToPreVolFactor = 0
+		else:
+			spikeToPreVolFactor = volumeToSpike/volPre
+		stats['spikeToPreVolFactor'] = spikeToPreVolFactor
+
+		return stats
+
+
+	@staticmethod
+	# vamos inicializar algumas stats que não são autocontidas em um dia
+	def calculateOuterDayStats(ativo):
+
+		gap = 0
+		dayBefore = ativo.intraDays[0]
+		for day in ativo.intraDays:
+			if dayBefore == day: # caso seja o primeiro dia, seta gap como zero, pois não faz sentido o calculo
+				day.stats['gap'] = 0 # notar que estamos alterando uma variável dentro do intradia.
+				dayBefore = day
+			else:
+				firstOpen = day._core[0]['open']
+				lastClose = dayBefore._core[-1]['close']
+				day.stats['gap'] = (firstOpen - lastClose)/lastClose
+				dayBefore = day
