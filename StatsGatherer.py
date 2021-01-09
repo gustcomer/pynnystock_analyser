@@ -12,6 +12,7 @@ class StatsGatherer:
 		self.n_filtered = 0
 		self.tradesdf = pd.DataFrame()
 		self.n_trades = 0
+		self.extrastatsdf = pd.DataFrame()
 
 		self.parameters = pars
 
@@ -27,7 +28,7 @@ class StatsGatherer:
 		self.groupResults = pd.DataFrame() # Optimization results
 
 
-	def setFilteredDaysDF(self, fad):
+	def setFilteredDaysDF(self, fad): # quem chama é o método Simulator.runFiltering()
 		# vamos primeiramente criar um dataframe vazio, mas com as colunas bem definidas
 		df = pd.DataFrame({'name':[],
 		                   'date':[],
@@ -64,7 +65,7 @@ class StatsGatherer:
 		self.n_filtered = len(self.filtereddf)
 
 
-	def setTradesDF(self, trades):
+	def setTradesDF(self, trades): # quem chama é o método Simulator.runSimulation() ou Simulator.openTrades()
 		df = pd.DataFrame({ 'name':[],
 		                    'date':[],
 		                    'entry_time':[],
@@ -332,3 +333,50 @@ class StatsGatherer:
 				lastClose = dayBefore._core[-1]['close']
 				day.stats['gap'] = (firstOpen - lastClose)/lastClose
 				dayBefore = day
+
+
+	@staticmethod
+	def calculateExtraStats(intraday): # esses dados são chamados por runSimulation e armazenados em trades
+		extraStats = {}
+		extraStats['open_pre'] = intraday._pre[0]['open'] if intraday._pre else np.NaN
+		extraStats['high_pre'] = max(intraday._pre, key=lambda x:x['high'])['high'] if intraday._pre else np.NaN
+		extraStats['low_pre'] = min(intraday._pre, key=lambda x:x['low'])['low'] if intraday._pre else np.NaN
+		extraStats['close_pre'] = intraday._pre[-1]['close'] if intraday._pre else np.NaN
+		extraStats['open_core'] = intraday._core[0]['open'] if intraday._core else np.NaN
+		extraStats['high_core'] = max(intraday._core, key=lambda x:x['high'])['high'] if intraday._core else np.NaN
+		extraStats['low_core'] = min(intraday._core, key=lambda x:x['low'])['low'] if intraday._core else np.NaN
+		extraStats['close_core'] = intraday._core[-1]['close'] if intraday._core else np.NaN
+		# usar np.NaN ou None? com np.NaN ainda podemos executar algumas funções matemáticas
+
+		return extraStats # vai acabar sendo armazenado em Simulator.trades, sendo cahamdo em runSimulation()
+
+
+	def setExtraStatsDF(self, trades): # quem chama é o método Simulator.runSimulation() ou Simulator.openTrades()
+		df = pd.DataFrame({ 'name':[],
+		                    'date':[],
+		                    'open_pre':[],
+		                    'high_pre':[],
+		                    'low_pre':[],
+		                    'close_pre':[],
+		                    'open_core':[],
+		                    'high_core':[],
+		                    'low_core':[],
+		                    'close_core':[]
+		                    })
+		for t in trades:
+		    if t['trade']:
+		        df = df.append({ 'name': t['name'],
+		                         'date': t['date'], #.strftime("%d/%m/%Y"), datetime é melhor que string
+		                         'open_pre': t['extraStats']['open_pre'],
+		                         'high_pre': t['extraStats']['high_pre'],
+		                         'low_pre': t['extraStats']['low_pre'],
+		                         'close_pre': t['extraStats']['close_pre'],
+		                         'open_core': t['extraStats']['open_core'],
+		                         'high_core': t['extraStats']['high_core'],
+		                         'low_core': t['extraStats']['low_core'],
+		                         'close_core': t['extraStats']['close_core']
+		                         }, ignore_index=True)
+		df = df.sort_values(by='date',ignore_index=True)
+		df.date = pd.to_datetime(df.date)
+
+		self.extrastatsdf = df

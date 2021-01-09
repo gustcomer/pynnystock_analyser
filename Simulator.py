@@ -4,6 +4,7 @@ import datetime
 import Ativo
 import pickle
 from Utilities import drawdown
+import StatsGatherer
 
 class Simulator:
 
@@ -56,12 +57,14 @@ class Simulator:
 		    intra = Ativo.Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'])
 		    trades.append({'name': ad['name'],
 		                   'date': ad['date'],
-		                   'trade': self.sm.checkForTrade(intra)
+		                   'trade': self.sm.checkForTrade(intra),
+		                   'extraStats': StatsGatherer.StatsGatherer.calculateExtraStats(intra)
 		                   })
 		self.trades = trades
 		# vamos contar o número de non-None trades.
 		self.n_trades = sum(x['trade'] is not None for x in self.trades)
 		self.sg.setTradesDF(self.trades)
+		self.sg.setExtraStatsDF(self.trades)
 
 
 	def saveTrades(self,filename):
@@ -74,4 +77,5 @@ class Simulator:
 		    self.trades = pickle.load(filehandle)
 		    self.n_trades = sum(x['trade'] is not None for x in self.trades)
 		    self.sg.setTradesDF(self.trades)
+		    self.sg.setExtraStatsDF(self.trades)
 
