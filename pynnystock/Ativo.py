@@ -1,7 +1,8 @@
 import pandas as pd
 import datetime
-from Utilities import divideDays
-import StatsGatherer
+
+from .Utilities import divideDays
+from .StatsGatherer import StatsGatherer
 
 class IntraDay():
 	'''
@@ -37,7 +38,7 @@ class IntraDay():
 				print('caso core vazio mas com pos')
 
 		# chama um static method da classe StatsGatherer do module StatsGatherer
-		self.stats = StatsGatherer.StatsGatherer.calculateIntradayStats(self)
+		self.stats = StatsGatherer.calculateIntradayStats(self)
 
 	def __repr__(self):
 
@@ -82,7 +83,7 @@ class Ativo():
 		self.data = data
 		self._initDayData()
 		self._initIntradayData()
-		StatsGatherer.StatsGatherer.calculateOuterDayStats(self)
+		StatsGatherer.calculateOuterDayStats(self)
 
 	@staticmethod # usamos @staticmethod e não @classmethod pois não precisaremos instanciar a classe com cls
 					# na verdade nem usamos name

@@ -1,11 +1,14 @@
 import pandas as pd
 import datetime
-from Utilities import drawdown
 import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 
-class StatsGatherer:
+from ...StatsGatherer import StatsGatherer
+from ...Utilities import drawdown
+
+
+class StatsGathererDEDS(StatsGatherer):
 
 	def __init__(self, pars):
 		self.filtereddf = pd.DataFrame()
@@ -14,7 +17,7 @@ class StatsGatherer:
 		self.n_trades = 0
 		self.extrastatsdf = pd.DataFrame()
 
-		self.parameters = pars
+		self.pars = pars
 
 		self.endMoney = 0
 		
@@ -68,39 +71,61 @@ class StatsGatherer:
 	def setTradesDF(self, trades): # quem chama é o método Simulator.runSimulation() ou Simulator.openTrades()
 		df = pd.DataFrame({ 'name':[],
 		                    'date':[],
-		                    'entry_time':[],
-		                    'mins_to_trade':[],
-		                    'exit_time':[],
-		                    'price':[],
-		                    'stop':[],
-		                    'target':[],
-		                    'profit':[]})
+		                    'entry1_time':[],
+		                    'exit1_time':[],
+		                    'price1':[],
+		                    'stop1':[],
+		                    'target1':[],
+		                    'profit1':[],
+		                    'entry2_time':[],
+		                    'exit2_time':[],
+		                    'price2':[],
+		                    'stop2':[],
+		                    'target2':[],
+		                    'profit2':[],
+		                    })
 		for t in trades:
-		    if t['trade']:
-		        secondsToTrade = t['trade']['entry']['time'] - datetime.datetime.combine( t['trade']['entry']['time'].date(), datetime.time(9,31) )
+		    if t['trade']: # se não for None
+		        # os casos onde temos primeira entry mas não temos segunda entry podem ser chatinhos
+		        entry1_time = t['trade']['entry1']['time'].strftime("%H:%M") if t['trade']['has_trade1'] else np.nan
+		        exit1_time = t['trade']['exit1']['time'].strftime("%H:%M") if t['trade']['has_trade1'] else np.nan
+		        entry2_time = t['trade']['entry2']['time'].strftime("%H:%M") if t['trade']['has_trade2'] else np.nan
+		        exit2_time =  t['trade']['exit2']['time'].strftime("%H:%M") if t['trade']['has_trade2'] else np.nan
 		        df = df.append({ 'name':t['name'],
 		                         'date':t['date'], #.strftime("%d/%m/%Y"), datetime é melhor que string
-		                         'entry_time':t['trade']['entry']['time'].strftime("%H:%M"),
-		                         'mins_to_trade':secondsToTrade.total_seconds()/60,
-		                         'exit_time':t['trade']['exit']['time'].strftime("%H:%M"),
-		                         'price':t['trade']['price'],
-		                         'stop':t['trade']['stop'],
-		                         'target':t['trade']['target'],
-		                         'profit':t['trade']['profit']},
+		                         'entry1_time':entry1_time,
+		                         'exit1_time':exit1_time,
+		                         'price1':t['trade']['price1'],
+		                         'stop1':t['trade']['stop1'],
+		                         'target1':t['trade']['target1'],
+		                         'profit1':t['trade']['profit1'],
+		                         'entry2_time':entry2_time,
+		                         'exit2_time':exit2_time,
+		                         'price2':t['trade']['price2'],
+		                         'stop2':t['trade']['stop2'],
+		                         'target2':t['trade']['target2'],
+		                         'profit2':t['trade']['profit2']
+		                         },
 		                       ignore_index=True)
 		df = df.sort_values(by='date',ignore_index=True)
-		df['cum_profit'] = (1+self.parameters.allocation*df['profit']).cumprod()
+		#df['cum_profit'] = (1+self.pars.allocation*self.pars.firstEntryPct*df['profit1'])*(1+self.pars.allocation*(1-self.pars.firstEntryPct)*df['profit2']).cumprod()
+		
+		df['profit'] = (1+self.pars.firstEntryPct*df['profit1'])*(1+(1-self.pars.firstEntryPct)*df['profit2'])-1
+
 		df['equity_real'] = pd.Series(0, index=df.index, dtype='float64')
 		df['profit_real'] = pd.Series(0, index=df.index, dtype='float64')
 
-		value = self.parameters.start_money
-		for index, row in df.iterrows():
-			anterior = value # vamos armazenar anterior pra calcular 'profit_real'
-			value = value + (value*self.parameters.allocation)*row['profit'] - value*self.parameters.allocation*self.parameters.locate_fee - self.parameters.commission
-			df.at[index,'equity_real'] = value
-			df.at[index,'profit_real'] = value/anterior-1 # curiosidade: a commission vai sendo diluida à medida dos trades
+		equity = self.pars.start_money
+		for index, row in df.iterrows(): # Iterate over DataFrame rows as (index, Series) pairs.
+			anterior = equity # vamos armazenar anterior pra calcular 'profit_real'
+			equity = equity + (equity*self.pars.allocation*self.pars.firstEntryPct)*row['profit1'] + \
+							(equity*self.pars.allocation*(1-self.pars.firstEntryPct))*row['profit2'] - \
+							equity*self.pars.allocation*self.pars.locate_fee - \
+							self.pars.commission
+			df.at[index,'equity_real'] = equity
+			df.at[index,'profit_real'] = equity/anterior-1 # curiosidade: a commission vai sendo diluida à medida dos trades
 
-		df['cum_profit_real'] = df['equity_real']/self.parameters.start_money
+		df['cum_profit_real'] = df['equity_real']/self.pars.start_money
 
 		df.date = pd.to_datetime(df.date)
 		self.tradesdf = df
@@ -142,20 +167,20 @@ class StatsGatherer:
 
 	def appendSimResults(self):
 
-		df = pd.DataFrame({ 'prevol_threshold':self.parameters.prevol_threshold,
-		                    'open_dolar_threshold':self.parameters.open_dolar_threshold,
-		                    'gap_threshold':self.parameters.gap_threshold,
-		                    'F_low_threshold':self.parameters.F_low_threshold,
-		                    'F_high_threshold':self.parameters.F_high_threshold,
-		                    'short_after':self.parameters.short_after,
-		                    'exit_target':self.parameters.exit_target,
-		                    'exit_stop':self.parameters.exit_stop,
-		                    'start_money':self.parameters.start_money,
-		                    'allocation':self.parameters.allocation,
-		                    'locate_fee':self.parameters.locate_fee,
-		                    'commission':self.parameters.commission,
+		df = pd.DataFrame({ 'prevol_threshold':self.pars.prevol_threshold,
+		                    'open_dolar_threshold':self.pars.open_dolar_threshold,
+		                    'gap_threshold':self.pars.gap_threshold,
+		                    'F_low_threshold':self.pars.F_low_threshold,
+		                    'F_high_threshold':self.pars.F_high_threshold,
+		                    'short_after':self.pars.short_after,
+		                    'exit_target':self.pars.exit_target,
+		                    'exit_stop':self.pars.exit_stop,
+		                    'start_money':self.pars.start_money,
+		                    'allocation':self.pars.allocation,
+		                    'locate_fee':self.pars.locate_fee,
+		                    'commission':self.pars.commission,
 		                    'end_money':self.endMoney,
-		                    'profit':(self.endMoney-self.parameters.start_money)/self.parameters.start_money,
+		                    'profit':(self.endMoney-self.pars.start_money)/self.pars.start_money,
 		                    'max_drawdown':self.maxdrawdown,
 		                    'meanmax_drawdown':self.meanmax_drawdown,
 		                    'maxmax_drawdown':self.maxmax_drawdown,
@@ -184,28 +209,11 @@ class StatsGatherer:
 
 	def printSimResults(self):
 
-		print('prevol_threshold', self.parameters.prevol_threshold)
-		print('open_dolar_threshold', self.parameters.open_dolar_threshold)
-		print('gap_threshold', self.parameters.gap_threshold)
-		print('F_low_threshold', self.parameters.F_low_threshold)
-		print('F_high_threshold', self.parameters.F_high_threshold)
+		print()
 
-		print('')
+		print(self.pars)
 
-		print('short_after', self.parameters.short_after)
-		print('exit_target', self.parameters.exit_target)
-		print('exit_stop', self.parameters.exit_stop)
-
-		print('')
-
-		print('start_money', self.parameters.start_money)
-		print('allocation', self.parameters.allocation)
-		print('locate_fee', self.parameters.locate_fee)
-		print('commission', self.parameters.commission)
-
-		print('')
-
-		print('Start Money:', '${:,.2f}'.format(self.parameters.start_money) )
+		print('Start Money:', '${:,.2f}'.format(self.pars.start_money) )
 
 		print('End Money:', '${:,.2f}'.format(self.endMoney) )
 		print('Number of Trades:', self.n_trades)
@@ -219,17 +227,6 @@ class StatsGatherer:
 		print('Mean of max Drawdown:', self.meanmax_drawdown )
 		print('Max of max Drawdown:', self.maxmax_drawdown )
 		print('Min of max Drawdown:', self.minmax_drawdown )
-
-
-	def plotHistMinsToTrade(self, bins = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]):
-
-		plt.hist( np.clip( self.tradesdf['mins_to_trade'], bins[0], bins[-1] ), bins=bins, edgecolor='black' )
-
-		plt.title('Minutes to Trade')
-		plt.xlabel('Minutes')
-		plt.ylabel('Total Ativos-Dias')
-
-		plt.show()
 
 
 	def plotEquityCurve(self, logy=False):

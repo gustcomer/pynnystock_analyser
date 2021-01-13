@@ -1,28 +1,26 @@
-import FileManager
+import pickle
 import pandas as pd
 import datetime
-import Ativo
-import pickle
-from Utilities import drawdown
-import StatsGatherer
+
+from .Ativo import Ativo
+from .Utilities import drawdown
+from .StatsGatherer import StatsGatherer
 
 class Simulator:
 
 
 	def __init__(self, fm, adl, pars, sm, sg):
-		self.fm = fm
+		
 		self.adl = adl # ADL: Ativos-Dias List
 		self.fad = [] # FAD: Filtered Ativos-Dias
 		self.trades = [] # trade results from last simulation
+		
 		self.n_trades = 0 # number of non-None trades
 
+		self.fm = fm
 		self.parameters = pars
-
-		self.sm = sm
-
+		self.sm = sm # StratsMaestro
 		self.sg = sg
-
-		self.results = pd.DataFrame()
 
 
 	def runFiltering(self):
@@ -54,11 +52,11 @@ class Simulator:
 	def runSimulation(self):
 		trades = []
 		for ad in self.fad:
-		    intra = Ativo.Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'])
+		    intra = Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'])
 		    trades.append({'name': ad['name'],
 		                   'date': ad['date'],
 		                   'trade': self.sm.checkForTrade(intra),
-		                   'extraStats': StatsGatherer.StatsGatherer.calculateExtraStats(intra)
+		                   'extraStats': StatsGatherer.calculateExtraStats(intra)
 		                   })
 		self.trades = trades
 		# vamos contar o número de non-None trades.
