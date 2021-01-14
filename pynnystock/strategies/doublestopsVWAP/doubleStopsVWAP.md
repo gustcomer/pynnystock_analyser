@@ -37,9 +37,10 @@ exit_target | Stop-target clássico
 exit_stop | Stop-loss clássico
 **vwap_distance** | Sai da position se distância ao vwap ficar maior que
 **vwap_timer_minutes** | Aciona a saída por distancia do vwap apos minutos
+**vwap_pct** | Porcentagem da operação que vai ser encerrada com saída vwap distance
 
 
-#### 2.3 Simulação
+#### 2.3 Parâmetros da Simulação
 
 Parâmetro | Descrição 
 ----------|----------
