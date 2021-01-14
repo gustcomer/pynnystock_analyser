@@ -3,13 +3,23 @@
 
 ## 1. Descrição
 
-Esse algoritmo possui uma entrada do tipo *short_after* e possui duas saídas sendo
+Entrada do algoritmo
+
+1. do tipo *short_after* (ENTRY) 
+
+E possui algumas saídas sendo
 	
-1. Saída clássica por stop-loss e stop-target
+1. Saídas clássicas por 
+	
+	* stop-loss (STOP_LOSS)
 
-2. Saída por distânciamento ao VWAP. Se o preço do ativo cair muito abaixo do VWAP, sai de parte da posição. Existe a possibilidade de acionar essa saída após um determinado número de minutos.
+	* stop-target (STOP_TARGET)
 
-3. Saída ao fim do pregão. A posição é completamente fechada no último ticker do dia.
+2. Saída por distânciamento ao VWAP. (TARGET_VWAP) Se o preço do ativo cair muito abaixo do VWAP, sai de parte da posição. Existe a possibilidade de acionar essa saída após um determinado número de minutos.
+
+3. Saída por tempo, a posição é completamente fechada. (STOP_TIME)
+
+4. Saída ao fim do pregão. A posição ou o restante dela é completamente fechada no último ticker do dia. (STOP_END)
 
 As Erich Ratzat said:
 
@@ -38,6 +48,7 @@ exit_stop | Stop-loss clássico
 **vwap_distance** | Sai da position se distância ao vwap ficar maior que
 **vwap_timer_minutes** | Aciona a saída por distancia do vwap apos minutos
 **vwap_pct** | Porcentagem da operação que vai ser encerrada com saída vwap distance
+**exit_after_minutes** | Encerra toda a posição após número de minutos
 
 
 #### 2.3 Parâmetros da Simulação
