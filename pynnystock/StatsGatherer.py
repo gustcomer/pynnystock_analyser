@@ -4,7 +4,7 @@ import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 
-from .Utilities import drawdown
+from .Utilities import drawdown, minutesDifference
 
 
 class StatsGatherer:
@@ -46,22 +46,22 @@ class StatsGatherer:
 		                   'factorF':[]})
 		# agora popula esse dataframe com todos AtivosXDia que passaram nos critérios
 		for ad in fad:
-		    secondsToSpike = datetime.datetime.combine(datetime.date.today(), ad['stats']['highCoreTime']) - datetime.datetime.combine(datetime.date.today(), datetime.time(9,31))
-		    minutesToLowAfterSpike = datetime.datetime.combine(datetime.date.today(), ad['stats']['lowAfterHighTime']) - datetime.datetime.combine(datetime.date.today(), ad['stats']['highCoreTime'])
+			minsToSpike = minutesDifference(ad['stats']['highCoreTime'], datetime.time(9,31))
+			minutesToLowAfterSpike = minutesDifference(ad['stats']['lowAfterHighTime'], ad['stats']['highCoreTime'])
 
-		    df = df.append({'name':ad['name'],
-		                       'date':ad['date'], #.strftime("%d/%m/%Y"),
-		                       'freefloat':ad['freefloat'],
-		                       'volPre':ad['stats']['volPre'],
-		                       'gap':ad['stats']['gap'],
-		                       'openToSpike%':ad['stats']['openToSpikePercent'],
-		                       'minsToSpike':secondsToSpike.total_seconds()/60,
-		                       'volToSpike':ad['stats']['volumeToSpike'],
-		                       'spikeToLow%':ad['stats']['spikeToLowPercent'],
-		                       'minsToLowAfterSpike':minutesToLowAfterSpike.total_seconds()/60,
-		                       'spikeToPreVolF':ad['stats']['spikeToPreVolFactor'],
-		                       'factorF':ad['stats']['moneyVolPre']/ad['freefloat']},
-		                          ignore_index=True)
+			df = df.append({'name':ad['name'],
+			                   'date':ad['date'], #.strftime("%d/%m/%Y"),
+			                   'freefloat':ad['freefloat'],
+			                   'volPre':ad['stats']['volPre'],
+			                   'gap':ad['stats']['gap'],
+			                   'openToSpike%':ad['stats']['openToSpikePercent'],
+			                   'minsToSpike':minsToSpike,
+			                   'volToSpike':ad['stats']['volumeToSpike'],
+			                   'spikeToLow%':ad['stats']['spikeToLowPercent'],
+			                   'minsToLowAfterSpike':minutesToLowAfterSpike,
+			                   'spikeToPreVolF':ad['stats']['spikeToPreVolFactor'],
+			                   'factorF':ad['stats']['moneyVolPre']/ad['freefloat']},
+			                      ignore_index=True)
 		df.date = pd.to_datetime(df.date)
 		self.filtereddf = df
 		self.n_filtered = len(self.filtereddf)
@@ -78,7 +78,7 @@ class StatsGatherer:
 		                    'target':[],
 		                    'profit':[]})
 		for t in trades:
-		    if t['trade']:
+		    if t['trade']['has_trade']:
 		        secondsToTrade = t['trade']['entry']['time'] - datetime.datetime.combine( t['trade']['entry']['time'].date(), datetime.time(9,31) )
 		        df = df.append({ 'name':t['name'],
 		                         'date':t['date'], #.strftime("%d/%m/%Y"), datetime é melhor que string
@@ -241,8 +241,8 @@ class StatsGatherer:
 		x.plot(logy=logy)
 
 
-	@staticmethod
-	def calculateIntradayStats(intraday):
+#	@staticmethod
+	def calculateIntradayStats(self, intraday):
 		stats = {}
 
 		# calcula volume pre market
@@ -320,9 +320,9 @@ class StatsGatherer:
 		return stats
 
 
-	@staticmethod
+#	@staticmethod
 	# vamos inicializar algumas stats que não são autocontidas em um dia
-	def calculateOuterDayStats(ativo):
+	def calculateOuterDayStats(self, ativo):
 
 		gap = 0
 		dayBefore = ativo.intraDays[0]
@@ -337,8 +337,8 @@ class StatsGatherer:
 				dayBefore = day
 
 
-	@staticmethod
-	def calculateExtraStats(intraday): # esses dados são chamados por runSimulation e armazenados em trades
+#	@staticmethod
+	def calculateExtraStats(self, intraday): # esses dados são chamados por runSimulation e armazenados em trades
 		extraStats = {}
 		extraStats['open_pre'] = intraday._pre[0]['open'] if intraday._pre else np.NaN
 		extraStats['high_pre'] = max(intraday._pre, key=lambda x:x['high'])['high'] if intraday._pre else np.NaN

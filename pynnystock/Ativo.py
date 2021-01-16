@@ -10,7 +10,9 @@ class IntraDay():
 	dataDay é uma list contendo os tickers de um dia qualquer de forma raw, sem nenhuma organização
 	Essa classe organiza os dados em _pre, _core, _after e fornece alguns métodos interessantes
 	'''
-	def __init__(self,dataDay): # dataDay is one element of the list dataDays
+	def __init__(self,dataDay, sg): # dataDay is one element of the list dataDays
+
+		self.sg = sg
 
 		self.dataDay = dataDay
 		self.date = dataDay[0]['time'].date()
@@ -37,8 +39,7 @@ class IntraDay():
 			if len(self._pos) > 0:
 				print('caso core vazio mas com pos')
 
-		# chama um static method da classe StatsGatherer do module StatsGatherer
-		self.stats = StatsGatherer.calculateIntradayStats(self)
+		self.stats = self.sg.calculateIntradayStats(self)
 
 	def __repr__(self):
 
@@ -60,10 +61,11 @@ class Ativo():
 	'''
 	Classe responsável por parsear os dados de uma ação específica
 	'''
-	def __init__(self, name, path):
+	def __init__(self, name, path, sg):
 
 		self.name = name
 		self.path = path
+		self.sg = sg
 
 		data = [] # list of bars, which are dicts containing tick information
 		with open(path, 'r') as file:
@@ -80,14 +82,19 @@ class Ativo():
 		        data.append(bar)
 		        line = file.readline()
 		data.reverse()
-		self.data = data
-		self._initDayData()
-		self._initIntradayData()
-		StatsGatherer.calculateOuterDayStats(self)
+		self.data = data # raw data, tem dados do ano inteiro
+		self.dataDays = divideDays(self.data) # tem informação sobre os dias 
+
+		# agora os dias divididos em core, pre, pos e stats, ou seja, dados intraday
+		self.intraDays = []
+		for d in self.dataDays:
+			self.intraDays.append( IntraDay(d, self.sg) )
+
+		self.sg.calculateOuterDayStats(self)
 
 	@staticmethod # usamos @staticmethod e não @classmethod pois não precisaremos instanciar a classe com cls
 					# na verdade nem usamos name
-	def initIntradayFromDate(name, path, d): # d é a data em formato datetime.date
+	def initIntradayFromDate(name, path, d, sg): # d é a data em formato datetime.date
 		data = []
 		with open(path, 'r') as file:
 			lines = [line for line in file if line.startswith(d.strftime("%Y-%m-%d"))]
@@ -102,17 +109,7 @@ class Ativo():
 					'volume':int(tokens[5])}
 			data.append(bar)
 
-		return IntraDay(data) # notar que iniciamos IntraDay() sem as outer stats, paciência.. por enquanto..
-
-	# são os dados brutos divididos em dias, mas ainda não divididos em core, pre, pos e stats
-	def _initDayData(self):
-		self.dataDays = divideDays(self.data)
-
-	# agora os dias divididos em core, pre, pos e stats, ou seja, dados intraday
-	def _initIntradayData(self):
-		self.intraDays = []
-		for d in self.dataDays:
-			self.intraDays.append( IntraDay(d) )
+		return IntraDay(data, sg) # notar que iniciamos IntraDay() sem as outer stats, paciência.. por enquanto..
 
 	# esse método filtra o dia de interesse e retorna um objeto da classe Intraday (aka ativo-dia)
 	# daria pra fazer com filter mas no final das contas next() é a melhor opção

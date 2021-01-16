@@ -52,15 +52,15 @@ class Simulator:
 	def runSimulation(self):
 		trades = []
 		for ad in self.fad:
-		    intra = Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'])
+		    intra = Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'], self.sg)
 		    trades.append({'name': ad['name'],
 		                   'date': ad['date'],
 		                   'trade': self.sm.checkForTrade(intra),
-		                   'extraStats': StatsGatherer.calculateExtraStats(intra)
+		                   'extraStats': self.sg.calculateExtraStats(intra)
 		                   })
 		self.trades = trades
 		# vamos contar o número de non-None trades.
-		self.n_trades = sum(x['trade'] is not None for x in self.trades)
+		self.n_trades = sum(x['trade']['has_trade'] is not False for x in self.trades)
 		self.sg.setTradesDF(self.trades)
 		self.sg.setExtraStatsDF(self.trades)
 
@@ -73,7 +73,7 @@ class Simulator:
 	def openTrades(self,filename):
 		with open(filename, 'rb') as filehandle: # w de read e b de binary
 		    self.trades = pickle.load(filehandle)
-		    self.n_trades = sum(x['trade'] is not None for x in self.trades)
+		    self.n_trades = sum(x['trade']['has_trade'] is not False for x in self.trades)
 		    self.sg.setTradesDF(self.trades)
 		    self.sg.setExtraStatsDF(self.trades)
 

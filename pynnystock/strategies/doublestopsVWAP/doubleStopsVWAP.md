@@ -17,7 +17,7 @@ E possui algumas saídas sendo
 
 2. Saída por distânciamento ao VWAP. (TARGET_VWAP) Se o preço do ativo cair muito abaixo do VWAP, sai de parte da posição. Existe a possibilidade de acionar essa saída após um determinado número de minutos.
 
-3. Saída por tempo, a posição é completamente fechada. (STOP_TIME)
+3. Saída por tempo, a posição é completamente fechada. Elapsed time tem que ser MAIOR ( > , strictly) que exit_after_minutes (STOP_TIME)
 
 4. Saída ao fim do pregão. A posição ou o restante dela é completamente fechada no último ticker do dia. (STOP_END)
 
@@ -59,6 +59,12 @@ start_money | Valor inicial de dinheiro, normalmente $10,000.00
 allocation | Para cada trade, estaremos investindo valor nessa porcentagem do total do portfolio
 locate_fee | Valor em % para alugar cada ação. É uma aproximação
 commission | Corretagem. Paga metade na abertura da posição e metade no fechamento
+
+
+#### 3 O que podemos esperar no DataFrame de trades?
+
+Variável | Descrição 
+----------|----------
 
 
 #### 3 Extensões

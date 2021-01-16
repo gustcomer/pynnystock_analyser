@@ -39,8 +39,11 @@ Criar nova classe **StratsMaestroSOMETHING** e sobrescrever o método *checkForT
 
 Dependendo da complexidade da estratégia, podemos ter variáveis temporárias, como por exemplo para descrever se a estratégia está posicionada ou não. Essas variáveis são incluidas dentro no preâmbulo do método *checkForTrade()* do objeto **StratsMaestro** e naturalmente possuem escopo local.
 
+#### 7 Criar notebook específico para testar as mudanças
 
-#### 7. Alterar código de coleta de estatísticas.
+Depois que criamos a lógica, já temos condições de rodar simulações e dar uma olhada nas variáveis internas dos objetos. É hora de começar a debugar! E para isso, nada melhor do que criar um notebook específico para esse propósito. Não esquecer de guardar ele na pasta específica de notebooks.
+
+#### 8. Alterar código de coleta de estatísticas.
 
 Primeiramente notar como não precisamos mexer na classe Simulator. Esse é o milagre do polimorfismo em ação.
 
@@ -49,18 +52,18 @@ Não precisaremos modificar o método que cria Dataframe com dados sobre os ativ
 Basicamente temos que alterar os métodos que coletam estatísticas sobre os trades, modificando o método *setTradesDF()* e também o método static *calculateExtraStats()*, ambos na classe **StatsGatherer.**
 
 
-#### 8. Reescrever código de *printSimResults()*
+#### 9. Reescrever código de *printSimResults()*
 
 Esse método fica dentro da classe **StatsGatherer**. Na verdade, o método chama o *__repr()__* de pars, portanto atualiza essa dunder function na classe **Parameters**. 
 
 
-#### 9. Adaptar código de inputs de **OptimizerSimulator**.
+#### 10. Adaptar código de inputs de **OptimizerSimulator**.
 
 A classe **OptmizerSimulator** trabalha com uma série de parâmetros. Para cada parâmetro é passado um range de possíveis valores e então é feita uma combinação. Para cada combinação de parâmetros é feita a otimização. Como cada estratégia tem seu conjunto de parâmetros, é natural esperar que seja necessário também um Optimizer Simulator para cada nova estratégia.
 
 Talvez seja possível passar os parâmetros de maneira dinâmica, futuramente vou estudar maneiras inteligentes de instanciar esse objeto tal que não precisemos criar um para cada estratégia.
 
 
-#### 10. Adaptar código que junta resultados do optimizer.
+#### 11. Adaptar código que junta resultados do optimizer.
 
 Lembrar que o nosso *optimizer* na verdade é a classe **OptimizerSimulator**. O *optimizer* adaptado para nossa estratégia vai ser o **OptimizerSimulatorSOMETHING**. Mas o cálculo das resultados é feito via **StatsGathererSOMETHING** usando Visitor Pattern. E para escolher quais dados vão ser guardados a cada iteração basta modificar o método *appendSimResults()* na classe **StatsGathererSOMETHING**. 

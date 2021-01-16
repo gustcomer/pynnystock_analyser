@@ -6,15 +6,19 @@ class StratsMaestro:
 
 
 	def checkForTrade(self, intra):
-		trade = {} # se não tiver trade nesse dia o dictionary fica vazio
+		trade = {
+					'has_trade':False
+		} # se não tiver trade nesse dia o dictionary fica vazio
+		
 		first = intra._core[0]
 
 		for bar in intra._core: 
 			# ENTRY POINT
-			if not bool(trade): # se nenhum trade tiver sido encontrado, procura por trades
+			if trade['has_trade']==False: # se nenhum trade tiver sido encontrado, procura por trades
 				if bar != intra._core[-1]:
 					variation = (bar['high'] - first['open'])/first['open']
 					if variation >= self.pars.short_after:
+						trade['has_trade'] = True
 						trade['entry'] = bar
 						trade['price'] = (1+self.pars.short_after)*first['open']
 						trade['stop'] = (1+self.pars.exit_stop)*trade['price']
@@ -32,8 +36,5 @@ class StratsMaestro:
 				if bar == intra._core[-1]: # se for a última barra, fecha o trade no close da ultima barra
 					trade['exit'] = bar
 					trade['profit'] = -(bar['close'] - trade['price'])/trade['price']
-
-		if not bool(trade): # testa se o dictionary com dados sobre um possível trade está vazio
-			return None
 
 		return trade # se o dictionary não estiver vazio, vai retornar os dados em trade

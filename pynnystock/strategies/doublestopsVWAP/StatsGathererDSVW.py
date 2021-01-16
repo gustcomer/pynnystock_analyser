@@ -5,55 +5,60 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 from ...StatsGatherer import StatsGatherer
-from ...Utilities import drawdown
+from ...Utilities import drawdown, minutesDifference
 
 
-class StatsGathererDEDS(StatsGatherer):
-
+class StatsGathererDSVW(StatsGatherer):
 
 	def setTradesDF(self, trades): # quem chama é o método Simulator.runSimulation() ou Simulator.openTrades()
 		df = pd.DataFrame({ 'name':[],
 		                    'date':[],
-		                    'entry1_time':[],
-		                    'exit1_time':[],
-		                    'price1':[],
-		                    'stop1':[],
-		                    'target1':[],
-		                    'profit1':[],
-		                    'entry2_time':[],
-		                    'exit2_time':[],
-		                    'price2':[],
-		                    'stop2':[],
-		                    'target2':[],
-		                    'profit2':[],
+		                    'has_trade':[],
+		                    'has_vwap_exit':[],
+		                    'has_time_exit':[],
+		                    'entry_time':[],
+		                    'minutes_to_trade':[],
+		                    'price':[],
+		                    'stop':[],
+		                    'target':[],
+		                    'exit_time':[],
+		                    'minutes_in_trade':[],
+		                    'profit':[],
+		                    'exit_vwap_time':[],
+		                    'minutes_to_vwap':[],
+		                    'profit1_vwap':[],
+		                    'profit2_vwap':[],
 		                    })
 		for t in trades:
-		    if t['trade']: # se não for None
+		    if t['trade']['has_trade']: # se houver algum trade. Caso contrario não contabiliza pois esse DF é só de trades efetivados
 		        # os casos onde temos primeira entry mas não temos segunda entry podem ser chatinhos
-		        entry1_time = t['trade']['entry1']['time'].strftime("%H:%M") if t['trade']['has_trade'] else np.nan
-		        exit1_time = t['trade']['exit1']['time'].strftime("%H:%M") if t['trade']['has_trade'] else np.nan
-		        entry2_time = t['trade']['entry2']['time'].strftime("%H:%M") if t['trade']['has_trade2'] else np.nan
-		        exit2_time =  t['trade']['exit2']['time'].strftime("%H:%M") if t['trade']['has_trade2'] else np.nan
+		        # sempre que tivermos time é bom colocar essa condicional pra não referenciar coisas que não existe. o resto não precisa
+		        entry_time = t['trade']['entry']['time'].strftime("%H:%M") if t['trade']['has_trade'] else np.nan
+		        exit_time = t['trade']['exit']['time'].strftime("%H:%M") if t['trade']['has_trade'] else np.nan
+		        exit_vwap_time = t['trade']['exit_vwap']['time'].strftime("%H:%M") if t['trade']['has_vwap_exit'] else np.nan
+		        minutes_to_trade = minutesDifference(t['trade']['entry']['time'].time(), datetime.time(9,31))
+		        minutes_in_trade = minutesDifference(t['trade']['exit']['time'].time(), t['trade']['entry']['time'].time())
+		        minutes_to_vwap = minutesDifference(t['trade']['exit_vwap']['time'].time(), t['trade']['entry']['time'].time()) if t['trade']['has_vwap_exit'] else np.nan
 		        df = df.append({ 'name':t['name'],
 		                         'date':t['date'], #.strftime("%d/%m/%Y"), datetime é melhor que string
-		                         'entry1_time':entry1_time,
-		                         'exit1_time':exit1_time,
-		                         'price1':t['trade']['price1'],
-		                         'stop1':t['trade']['stop1'],
-		                         'target1':t['trade']['target1'],
-		                         'profit1':t['trade']['profit1'],
-		                         'entry2_time':entry2_time,
-		                         'exit2_time':exit2_time,
-		                         'price2':t['trade']['price2'],
-		                         'stop2':t['trade']['stop2'],
-		                         'target2':t['trade']['target2'],
-		                         'profit2':t['trade']['profit2']
+		                         'has_trade':t['trade']['has_trade'],
+		                         'has_vwap_exit':t['trade']['has_vwap_exit'],
+		                         'has_time_exit':t['trade']['has_time_exit'],
+		                         'entry_time':entry_time,
+		                         'minutes_to_trade': minutes_to_trade,
+		                         'price':t['trade']['price'],
+		                         'stop':t['trade']['stop'],
+		                         'target':t['trade']['target'],
+		                         'exit_time':exit_time,
+		                         'profit':t['trade']['profit'],
+		                         'minutes_in_trade':minutes_in_trade,
+		                         'exit_vwap_time':exit_vwap_time,
+		                         'minutes_to_vwap':minutes_to_vwap,
+		                         'profit1_vwap': t['trade']['profit1_vwap'],
+		                         'profit2_vwap': t['trade']['profit2_vwap'],
 		                         },
 		                       ignore_index=True)
 		df = df.sort_values(by='date',ignore_index=True)
-		#df['cum_profit'] = (1+self.pars.allocation*self.pars.firstEntryPct*df['profit1'])*(1+self.pars.allocation*(1-self.pars.firstEntryPct)*df['profit2']).cumprod()
-		
-		df['profit'] = (1+self.pars.firstEntryPct*df['profit1'])*(1+(1-self.pars.firstEntryPct)*df['profit2'])-1
 
 		df['equity_real'] = pd.Series(0, index=df.index, dtype='float64')
 		df['profit_real'] = pd.Series(0, index=df.index, dtype='float64')
@@ -61,8 +66,8 @@ class StatsGathererDEDS(StatsGatherer):
 		equity = self.pars.start_money
 		for index, row in df.iterrows(): # Iterate over DataFrame rows as (index, Series) pairs.
 			anterior = equity # vamos armazenar anterior pra calcular 'profit_real'
-			equity = equity + (equity*self.pars.allocation*self.pars.firstEntryPct)*row['profit1'] + \
-							(equity*self.pars.allocation*(1-self.pars.firstEntryPct))*row['profit2'] - \
+
+			equity = equity + equity*self.pars.allocation*row['profit'] - \
 							equity*self.pars.allocation*self.pars.locate_fee - \
 							self.pars.commission
 			df.at[index,'equity_real'] = equity
@@ -87,6 +92,10 @@ class StatsGathererDEDS(StatsGatherer):
 		                    'short_after':self.pars.short_after,
 		                    'exit_target':self.pars.exit_target,
 		                    'exit_stop':self.pars.exit_stop,
+		                    'vwap_distance':self.pars.vwap_distance,
+		                    'vwap_timer_minutes':self.pars.vwap_timer_minutes,
+		                    'vwap_pct':self.pars.vwap_pct,
+		                    'exit_after_minutes':self.pars.exit_after_minutes,
 		                    'start_money':self.pars.start_money,
 		                    'allocation':self.pars.allocation,
 		                    'locate_fee':self.pars.locate_fee,

@@ -16,7 +16,7 @@ class StratsMaestroDEDS(StratsMaestro):
 	def checkForTrade(self, intra):
 
 		trade = {
-					'has_trade1': False,
+					'has_trade': False,
 					'entry1': None,
 					'price1': np.nan,
 					'stop1': np.nan,
@@ -42,7 +42,7 @@ class StratsMaestroDEDS(StratsMaestro):
 				if bar != intra._core[-1]: # se não for última barra do dia..
 					variation = (bar['high'] - first['open'])/first['open']
 					if variation >= self.pars.short_after1: # ENTRY 1
-						trade['has_trade1'] = True
+						trade['has_trade'] = True
 						trade['entry1'] = bar
 						trade['price1'] = (1+self.pars.short_after1)*first['open']
 						trade['stop1'] = (1+self.pars.exit_stop)*trade['price1']

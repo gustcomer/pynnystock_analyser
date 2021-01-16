@@ -1,4 +1,6 @@
 import pandas as pd
+from datetime import datetime, date
+
 
 def divideDays(bl):
 	'''
@@ -25,6 +27,7 @@ def divideDays(bl):
 
 	return dbl
 
+
 def drawdown(s): # retorna o máximo drawdown de uma série
 	dd = pd.Series(dtype='float64') # drawdown (dd) will be used to calculate maximum drawdown (mdd)
 	# especificamos explicitamente o dtype para evitar uma warning
@@ -34,4 +37,11 @@ def drawdown(s): # retorna o máximo drawdown de uma série
 		# como não queremos dar append de 1 em s, usamos max(X,1) onde
 		# X = s[:i+1].max()
 		dd = dd.append( pd.Series( _dd ), ignore_index=True ) 
-	return abs( dd.min() ) # na verdade retornamos o maximo drawdown de uma série, 
+	return abs( dd.min() ) # na verdade retornamos o maximo drawdown de uma série,
+
+
+# a grande questão dessa função é que a lib datetime não permite fazer diferença de dois tempos, tem sempre
+# que estar associado com esse combine com date.today() para poder usar a diferença com operador -
+def minutesDifference(t2, t1):
+	secondsDiff = datetime.combine(date.today(),t2) - datetime.combine(date.today(),t1)
+	return secondsDiff.total_seconds()/60
