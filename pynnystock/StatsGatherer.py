@@ -241,7 +241,6 @@ class StatsGatherer:
 		x.plot(logy=logy)
 
 
-#	@staticmethod
 	def calculateIntradayStats(self, intraday):
 		stats = {}
 
@@ -320,7 +319,6 @@ class StatsGatherer:
 		return stats
 
 
-#	@staticmethod
 	# vamos inicializar algumas stats que não são autocontidas em um dia
 	def calculateOuterDayStats(self, ativo):
 
@@ -337,7 +335,6 @@ class StatsGatherer:
 				dayBefore = day
 
 
-#	@staticmethod
 	def calculateExtraStats(self, intraday): # esses dados são chamados por runSimulation e armazenados em trades
 		extraStats = {}
 		extraStats['open_pre'] = intraday._pre[0]['open'] if intraday._pre else np.NaN
