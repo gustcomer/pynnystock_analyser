@@ -1,8 +1,10 @@
 import pandas as pd
 import datetime
+import mysql.connector
 
 from .Utilities import divideDays
 from .StatsGatherer import StatsGatherer
+from .settings import db
 
 class IntraDay():
 	'''
@@ -67,8 +69,22 @@ class Ativo():
 		self.path = path
 		self.sg = sg
 
+		# SE QUISER USAR CSVS AO INVÉS DE DATABASE MYSQL, DESCOMENTAR ESSA LINHA
+		#self.data = self.openDataWithCSVs() # raw data, tem dados do ano inteiro
+
+		self.data = self.openDataWithDB() # SE NÃO QUISER USAR MAIS DATABASE, COMENTAR ESSA LINHA
+		self.dataDays = divideDays(self.data) # tem informação sobre os dias 
+
+		# agora os dias divididos em core, pre, pos e stats, ou seja, dados intraday
+		self.intraDays = []
+		for d in self.dataDays:
+			self.intraDays.append( IntraDay(d, self.sg) )
+
+		self.sg.calculateOuterDayStats(self)
+
+	def openDataWithCSVs(self):
 		data = [] # list of bars, which are dicts containing tick information
-		with open(path, 'r') as file:
+		with open(self.path, 'r') as file:
 		    line = file.readline() # le a primeira vez e descarta o header
 		    line = file.readline() # le a primeira vez e tenta continuar a ler
 		    while line:
@@ -82,20 +98,53 @@ class Ativo():
 		        data.append(bar)
 		        line = file.readline()
 		data.reverse()
-		self.data = data # raw data, tem dados do ano inteiro
-		self.dataDays = divideDays(self.data) # tem informação sobre os dias 
+		return data
 
-		# agora os dias divididos em core, pre, pos e stats, ou seja, dados intraday
-		self.intraDays = []
-		for d in self.dataDays:
-			self.intraDays.append( IntraDay(d, self.sg) )
 
-		self.sg.calculateOuterDayStats(self)
+	def openDataWithDB(self):
+		data = []
+
+		mydb = mysql.connector.connect(
+		  host=db['host'],
+		  user=db['user'],
+		  password=db['password'],
+		  database=db['database']
+		)
+
+		mycursor = mydb.cursor(dictionary=True)
+		mycursor.execute(f"SELECT * FROM trades WHERE symbol='{self.name}'")
+		result = mycursor.fetchall()
+
+		for r in result:
+			bar = {
+			    'time': r['trade_timestamp'],
+			    'open': float(r['open']),
+			    'high': float(r['high']),
+			    'low': float(r['low']),
+			    'close': float(r['close']),
+			    'volume': int(r['volume'])
+			}
+			data.append(bar)
+
+		mydb.close()
+
+		return data
+
 
 	@staticmethod # usamos @staticmethod e não @classmethod pois não precisaremos instanciar a classe com cls
 					# na verdade nem usamos name
 	def initIntradayFromDate(name, path, d, sg): # d é a data em formato datetime.date
+
+		# data = Ativo.openIntraDataWithCSV(path,d) # SE QUISER LER DE CSV USA ESSE LINHA, SENÃO USA A DEBAIXO
+		data = Ativo.openIntraDataWithDB(name,d) # SE NÃO QUISER USAR DB, COMENTA ESSA LINHA E DESCOMENTA A DE CIMA
+
+		return IntraDay(data, sg) # notar que iniciamos IntraDay() sem as outer stats, paciência.. por enquanto..
+
+
+	@staticmethod
+	def openIntraDataWithCSV(path, d):
 		data = []
+
 		with open(path, 'r') as file:
 			lines = [line for line in file if line.startswith(d.strftime("%Y-%m-%d"))]
 		lines.reverse()
@@ -109,7 +158,42 @@ class Ativo():
 					'volume':int(tokens[5])}
 			data.append(bar)
 
-		return IntraDay(data, sg) # notar que iniciamos IntraDay() sem as outer stats, paciência.. por enquanto..
+		return data
+
+
+	@staticmethod
+	def openIntraDataWithDB(name,d):
+
+		data = [] # data for an intraday
+
+		date_str = d.strftime("%Y-%m-%d")
+
+		mydb = mysql.connector.connect(
+		  host=db['host'],
+		  user=db['user'],
+		  password=db['password'],
+		  database=db['database']
+		)
+
+		mycursor = mydb.cursor(dictionary=True)
+		mycursor.execute(f"SELECT * FROM trades WHERE symbol='{name}' AND DATE(trade_timestamp) = '{date_str}'")
+		result = mycursor.fetchall()
+
+		for r in result:
+			bar = {
+			    'time': r['trade_timestamp'],
+			    'open': float(r['open']),
+			    'high': float(r['high']),
+			    'low': float(r['low']),
+			    'close': float(r['close']),
+			    'volume': int(r['volume'])
+			}
+			data.append(bar)
+
+		mydb.close()
+
+		return data
+
 
 	# esse método filtra o dia de interesse e retorna um objeto da classe Intraday (aka ativo-dia)
 	# daria pra fazer com filter mas no final das contas next() é a melhor opção
