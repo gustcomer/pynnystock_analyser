@@ -52,7 +52,7 @@ class Simulator:
 	def runSimulation(self):
 		trades = []
 		for ad in self.fad:
-		    intra = Ativo.initIntradayFromDate(ad['name'],self.fm[ad['name']],ad['date'], self.sg)
+		    intra = Ativo.initIntradayFromDate(ad['name'],self.fm,ad['date'], self.sg)
 		    trades.append({'name': ad['name'],
 		                   'date': ad['date'],
 		                   'trade': self.sm.checkForTrade(intra),

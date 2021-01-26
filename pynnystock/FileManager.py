@@ -1,4 +1,7 @@
 import pandas as pd
+import mysql.connector
+
+from .settings import db
 
 
 class FileManager():
@@ -6,6 +9,7 @@ class FileManager():
 	Organiza os nomes e os paths de cada arquivo.
 	Permite descobrir o path de um arquivo usando o seu ticker
 	Como tarefa adicional, organiza arquivos auxiliares como o arquivo com free_floats
+	Como outra tarefa: acessa o banco de dados e pega os nomes dos tickers
 	------------------------------------------------------------------------------------------
 	Exemplo: fm = fman.FileManager()
 			 fm['AAMC']
@@ -28,14 +32,37 @@ class FileManager():
 		self.size = len(self.ticker)
 		self._initFreeFloatFile()
 
+
 	def __getitem__(self,i): # é o operador de quando for chamado com []
 		return self.ticker[i]
+
 
 	def getNames(self):
 		return list(self.ticker.keys())
 
+
+	def getNamesDB(self):
+		data = []
+
+		mydb = mysql.connector.connect(
+		  host=db['host'],
+		  user=db['user'],
+		  password=db['password'],
+		  database=db['database']
+		)
+
+		mycursor = mydb.cursor()
+		mycursor.execute(f"SELECT DISTINCT symbol from trades")
+		result = mycursor.fetchall()
+
+		data = [item for t in result for item in t]
+
+		return data
+
+
 	def show(self):
 		print(self.ticker)
+
 
 	def _initFreeFloatFile(self):
 		filename = 'america_2020-11-28.csv'

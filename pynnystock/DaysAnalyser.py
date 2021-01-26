@@ -18,7 +18,8 @@ class DaysAnalyser:
 		self.sg = sg
 		self.names = []
 
-		names_pennystocks = self.fm.getNames()
+		#names_pennystocks = self.fm.getNames()
+		names_pennystocks = self.fm.getNamesDB() # se quiser lista de names vida do DB usa essa. Senão usa a de cima.
 		names_free_float = self.fm.getFreeFloatNames()
 		self.names = list(set(names_pennystocks) & set(names_free_float))
 		self.names.sort()
@@ -36,11 +37,11 @@ class DaysAnalyser:
 		self.minPercentThreshold = minPercentThreshold
 
 		self.sad = [] # Selected Ativo Dias (pra não confundir com adl nem com fad)
-#		for n in self.names[0:50]:
+#		for n in self.names[0:20]:
 		for n in self.names:
 		    print(n, end='')
 		    try:
-		        a = Ativo(n, self.fm[n], self.sg)
+		        a = Ativo(n, self.fm, self.sg)
 		        freefloat = self.fm.getFreeFloat(n)
 		        for intraday in a.intraDays:
 		        	mfo = MinFromOpen(intraday) # indicador não parametrizável
@@ -53,7 +54,8 @@ class DaysAnalyser:
 		        						minTime=minTime
 		        						)
 		        	ohlc = OHLCDay(intraday)
-		        	if minFromOpenPercent <= self.minPercentThreshold:
+#		        	if minFromOpenPercent > self.minPercentThreshold: # ESSA É A CONDIÇÃO INVERSA
+		        	if minFromOpenPercent <= self.minPercentThreshold:	# ESSA É A CONDIÇÃO ORIGINAL
 			            d = {'name': a.name,
 			                 'date': intraday.date,
 			                 'minFromOpenPercent': minFromOpenPercent,
@@ -95,66 +97,27 @@ class DaysAnalyser:
 
 
 	def setAnalysedDaysDF(self):
-		df = pd.DataFrame({ 'name':[],
-		                    'date':[],
-		                    'minFromOpenPercent':[],
-		                    'freefloat':[],
-		                    'price':[],
-		                    '1stTrancheVolume':[],
-		                    '2ndTrancheVolume':[],
-		                    '1stTranchePercent':[],
-		                    '1stTrancheFloatRot':[],
-		                    '2ndTrancheFloatRot':[],
-		                    'minPctBeforeTime':[],
-		                    'open_pre':[],
-		                    'high_pre':[],
-		                    'low_pre':[],
-		                    'close_pre':[],
-		                    'open_core':[],
-		                    'high_core':[],
-		                    'low_core':[],
-		                    'close_core':[],
-		                    'gap':[]
-		                    })
 
-		for d in self.sad: # para cada dia nos selected ativo-dias
-		    df = df.append({ 'name':d['name'],
-		                     'date':d['date'], #.strftime("%d/%m/%Y"), datetime é melhor que string
-		                     'minFromOpenPercent': d['minFromOpenPercent'],
-		                     'freefloat': d['freefloat'],
-		                     'price': d['price'],
-		                     '1stTrancheVolume': d['1stTrancheVolume'],
-		                     '2ndTrancheVolume':d['2ndTrancheVolume'],
-		                     '1stTranchePercent':d['1stTranchePercent'],
-		                     '1stTrancheFloatRot':d['1stTrancheFloatRot'],
-		                     '2ndTrancheFloatRot':d['2ndTrancheFloatRot'],
-		                     'minPctBeforeTime':d['minPctBeforeTime'],
-		                     'open_pre':d['open_pre'],
-		                     'high_pre':d['high_pre'],
-		                     'low_pre':d['low_pre'],
-		                     'close_pre':d['close_pre'],
-		                     'open_core':d['open_core'],
-		                     'high_core':d['high_core'],
-		                     'low_core':d['low_core'],
-		                     'close_core':d['close_core'],
-		                     'gap':d['gap']},
-		                   ignore_index=True)
-		    df = df.sort_values(by='date',ignore_index=True)
+		adkl = {key: [dic[key] for dic in self.sad] for key in self.sad[0]}
 
-		self.selectedAtivosDiasDF = df
+		self.selectedAtivosDiasDF = pd.DataFrame(adkl)
+
 
 	def saveSelectedAD(self,filename):
 		with open(filename, 'wb') as filehandle: # w de write e b de binary
 		    pickle.dump(self.sad,filehandle)
+
 
 	def openSelectedAD(self,filename):
 		with open(filename, 'rb') as filehandle: # w de read e b de binary
 		    self.sad = pickle.load(filehandle)
 		    self.setAnalysedDaysDF()
 
+
 	def saveSelectedAtivoDiasDF(self,filename):
 		with open(filename, 'wb') as filehandle: # w de write e b de binary
 		    pickle.dump(self.selectedAtivosDiasDF,filehandle)
+
 
 	def openSelectedAtivoDiasDF(self,filename):
 		with open(filename, 'rb') as filehandle: # w de read e b de binary

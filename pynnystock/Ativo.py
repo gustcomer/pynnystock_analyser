@@ -63,10 +63,10 @@ class Ativo():
 	'''
 	Classe responsável por parsear os dados de uma ação específica
 	'''
-	def __init__(self, name, path, sg):
+	def __init__(self, name, fm, sg):
 
 		self.name = name
-		self.path = path
+		self.fm = fm
 		self.sg = sg
 
 		# SE QUISER USAR CSVS AO INVÉS DE DATABASE MYSQL, DESCOMENTAR ESSA LINHA
@@ -84,7 +84,7 @@ class Ativo():
 
 	def openDataWithCSVs(self):
 		data = [] # list of bars, which are dicts containing tick information
-		with open(self.path, 'r') as file:
+		with open(self.fm[self.name], 'r') as file:
 		    line = file.readline() # le a primeira vez e descarta o header
 		    line = file.readline() # le a primeira vez e tenta continuar a ler
 		    while line:
@@ -133,19 +133,19 @@ class Ativo():
 
 	@staticmethod # usamos @staticmethod e não @classmethod pois não precisaremos instanciar a classe com cls
 					# na verdade nem usamos name
-	def initIntradayFromDate(name, path, d, sg): # d é a data em formato datetime.date
+	def initIntradayFromDate(name, fm, d, sg): # d é a data em formato datetime.date
 
-		# data = Ativo.openIntraDataWithCSV(path,d) # SE QUISER LER DE CSV USA ESSE LINHA, SENÃO USA A DEBAIXO
+		# data = Ativo.openIntraDataWithCSV(name,fm,d) # SE QUISER LER DE CSV USA ESSE LINHA, SENÃO USA A DEBAIXO
 		data = Ativo.openIntraDataWithDB(name,d) # SE NÃO QUISER USAR DB, COMENTA ESSA LINHA E DESCOMENTA A DE CIMA
 
 		return IntraDay(data, sg) # notar que iniciamos IntraDay() sem as outer stats, paciência.. por enquanto..
 
 
 	@staticmethod
-	def openIntraDataWithCSV(path, d):
+	def openIntraDataWithCSV(name,fm, d):
 		data = []
 
-		with open(path, 'r') as file:
+		with open(fm[name], 'r') as file:
 			lines = [line for line in file if line.startswith(d.strftime("%Y-%m-%d"))]
 		lines.reverse()
 		for line in lines:
