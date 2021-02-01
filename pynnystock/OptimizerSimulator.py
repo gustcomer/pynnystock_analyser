@@ -1,6 +1,7 @@
 import datetime
 import pandas as pd
 
+
 class OptimizerSimulator:
 	
 	def __init__(self, simulator, bs_simulator, sg):

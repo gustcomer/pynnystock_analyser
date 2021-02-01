@@ -24,7 +24,7 @@ Lembrar que todas essas mudanças devem ser feitas por meio de uma nova classe *
 
 Lembrar que enquanto o *checkForTrades()* verifica se houve trades, precisamos armazenar informações sobre o trade num dictionary *trade* para que possamos depois verificar se houve lucro, prejuízo, calcular cumulative_profit, etc. É bom ir pensando em quais informações sobre o trade precisaremos armazenar, isso pode inclusive auxiliar no passo anterior de escrever o código da estratégia.
 
-O ideal é escrever o dictionary trades à medida que vai programando o checkForTrades().
+O ideal é escrever o dictionary trades à medida que vai programando o checkForTrades(). Esse processo é feito criando um objeto **StratsMaestro** próprio, conforme especificado no ítem 6.
 
 
 #### 5. Desenhar mapa de estados.

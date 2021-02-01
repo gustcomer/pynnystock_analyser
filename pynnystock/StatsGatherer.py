@@ -14,6 +14,7 @@ class StatsGatherer:
 		self.filtereddf = pd.DataFrame() # dataframe with some information about fad
 		self.tradesdf = pd.DataFrame() # dataframe with some information about trades
 		self.extrastatsdf = pd.DataFrame() # dataframe with some more information about trades
+		self.perfreportdf = pd.DataFrame() # dataframe with performance report
 		self.bs_res = pd.DataFrame() # Bootstrap results
 		self.groupResults = pd.DataFrame() # Optimization results
 
@@ -60,7 +61,7 @@ class StatsGatherer:
 			                   'spikeToLow%':ad['stats']['spikeToLowPercent'],
 			                   'minsToLowAfterSpike':minutesToLowAfterSpike,
 			                   'spikeToPreVolF':ad['stats']['spikeToPreVolFactor'],
-			                   'factorF':ad['stats']['moneyVolPre']/ad['freefloat']},
+			                   'factorF':ad['stats']['volPre']/ad['freefloat']},
 			                      ignore_index=True)
 		df.date = pd.to_datetime(df.date)
 		self.filtereddf = df
@@ -110,6 +111,10 @@ class StatsGatherer:
 		self.endMoney = self.getEndMoney()
 		self.maxdrawdown = self.getMaxDrawdown()
 
+
+	def setPerfReportDF(self): # vai usar muito o tradesdf
+		tdf = self.tradesdf # apenas para usar um apelido mais agradável
+		pass
 
 	def getEndMoney(self):
 		dft = self.tradesdf
@@ -182,6 +187,17 @@ class StatsGatherer:
 	def openGroupResults(self,filename):
 		with open(filename, 'rb') as filehandle: # r de read e b de binary
 			self.groupResults = pickle.load(filehandle)
+
+
+	def exportSimulationExcel(self, filename):
+		with pd.ExcelWriter(filename) as writer: 
+			self.filtereddf.to_excel(writer, sheet_name='filtered_days')
+			self.tradesdf.to_excel(writer, sheet_name='trades')
+			self.extrastatsdf.to_excel(writer, sheet_name='extra_statistics')
+
+
+	def exportGroupResultsExcel(self,filename):
+		self.groupResults.to_excel(filename)
 
 
 	def printSimResults(self):

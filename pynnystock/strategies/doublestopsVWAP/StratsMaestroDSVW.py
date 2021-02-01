@@ -102,7 +102,7 @@ class StratsMaestroDSVW(StratsMaestro):
 					trade['profit2_vwap'] = -(bar['close'] - trade['price'])/trade['price']
 					trade['profit'] = p.vwap_pct*trade['profit1_vwap'] + (1-p.vwap_pct)*trade['profit2_vwap']
 					s = 3 # nem precisaria pois esta é a última bar
-			elif s == 2:
+			elif s == 2: # aqui estava 2 mas acho que é 3
 				break
 
 		return trade # se o dictionary não estiver vazio, vai retornar os dados em trade
