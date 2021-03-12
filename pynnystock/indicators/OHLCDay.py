@@ -15,4 +15,6 @@ class OHLCDay:
 			self.high_core = max(intra._core, key=lambda x:x['high'])['high'] if intra._core else np.NaN
 			self.low_core = min(intra._core, key=lambda x:x['low'])['low'] if intra._core else np.NaN
 			self.close_core = intra._core[-1]['close'] if intra._core else np.NaN
+			
+			self.range_core = self.high_core-self.low_core
 

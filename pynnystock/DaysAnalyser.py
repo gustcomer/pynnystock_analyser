@@ -24,8 +24,6 @@ class DaysAnalyser:
 		self.names = list(set(names_pennystocks) & set(names_free_float))
 		self.names.sort()
 
-		self.minPercentThreshold = -0.3
-
 
 	def runAnalysis(self, 
 					minPercentThreshold=-0.3,
@@ -37,7 +35,7 @@ class DaysAnalyser:
 		self.minPercentThreshold = minPercentThreshold
 
 		self.sad = [] # Selected Ativo Dias (pra não confundir com adl nem com fad)
-#		for n in self.names[0:20]:
+#		for n in self.names[0:20]: # Para debugar! apenas os 20 primeiros nomes 
 		for n in self.names:
 		    print(n, end='')
 		    try:
